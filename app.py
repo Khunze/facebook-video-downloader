@@ -7,11 +7,52 @@ import uuid
 import tempfile
 import time
 from threading import Thread
+from datetime import datetime
+import json
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Needed for flash messages
 # Ensure downloads directory exists at import time (works with flask run and reloader)
 os.makedirs('downloads', exist_ok=True)
+
+# Download log file
+DOWNLOAD_LOG = 'download_history.json'
+
+def log_download(url, quality, success=True, error=None, video_title=None):
+    """Log download activity to JSON file"""
+    log_entry = {
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'url': url,
+        'quality': quality,
+        'success': success,
+        'error': error,
+        'video_title': video_title,
+        'ip_address': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent', 'Unknown')
+    }
+    
+    # Read existing logs
+    try:
+        if os.path.exists(DOWNLOAD_LOG):
+            with open(DOWNLOAD_LOG, 'r', encoding='utf-8') as f:
+                logs = json.load(f)
+        else:
+            logs = []
+    except:
+        logs = []
+    
+    # Add new log
+    logs.append(log_entry)
+    
+    # Keep only last 1000 entries
+    logs = logs[-1000:]
+    
+    # Write back
+    try:
+        with open(DOWNLOAD_LOG, 'w', encoding='utf-8') as f:
+            json.dump(logs, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error writing log: {e}")
 
 def cleanup_old_files():
     """Delete files older than 1 hour from downloads folder"""
@@ -118,8 +159,22 @@ def download():
         ydl_opts['cookiefile'] = cookies_file
 
     try:
+        # Extract video info first
+        video_title = None
+        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            try:
+                info = ydl.extract_info(url, download=False)
+                video_title = info.get('title', 'Unknown')
+            except:
+                video_title = 'Unknown'
+        
+        # Download video
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+        
+        # Log successful download
+        log_download(url, quality, success=True, video_title=video_title)
+        
         # Provide a friendly download filename
         response = send_file(outtmpl, as_attachment=True, download_name='facebook_video.mp4')
         
@@ -146,6 +201,9 @@ def download():
             error_msg = 'Network error. Please check your connection and try again.'
         else:
             error_msg = f'Download failed: {error_msg[:100]}'  # Limit error message length
+        
+        # Log failed download
+        log_download(url, quality, success=False, error=error_msg)
         
         return redirect(url_for('index', error=error_msg))
     finally:
