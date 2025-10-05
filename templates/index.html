@@ -139,18 +139,32 @@
 			btnLoader.style.display = 'inline-flex';
 			btn.disabled = true;
 			
-			// Show success message
-			setTimeout(function() {
-				successMsg.style.display = 'flex';
-			}, 300);
-			
-			// Reset button state after download completes (or timeout)
-			setTimeout(function() {
+			// Function to reset button state
+			function resetButton() {
 				btnText.style.display = 'inline';
 				btnLoader.style.display = 'none';
 				btn.disabled = false;
+			}
+			
+			// Show success message after 1 second (server is processing)
+			setTimeout(function() {
+				successMsg.style.display = 'flex';
+			}, 1000);
+			
+			// Reset button after 3 seconds (download should have started by then)
+			setTimeout(function() {
+				resetButton();
+			}, 3000);
+			
+			// Hide success message after 7 seconds total
+			setTimeout(function() {
 				successMsg.style.display = 'none';
-			}, 10000); // 10 seconds timeout
+			}, 7000);
+			
+			// Fallback: If page doesn't redirect/reload, ensure button resets
+			setTimeout(function() {
+				resetButton();
+			}, 8000);
 		});
 
 		// Animate stats counter on page load
