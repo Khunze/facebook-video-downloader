@@ -132,6 +132,22 @@ h1 {
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
 }
 
+/* Error Message */
+.error-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    border: 2px solid #dc3545;
+    border-radius: 10px;
+    color: #721c24;
+    margin-bottom: 20px;
+    animation: slideDown 0.4s ease-out;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
+}
+
 @keyframes slideDown {
     from {
         opacity: 0;
@@ -156,7 +172,25 @@ h1 {
     justify-content: center;
 }
 
+.error-icon {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #dc3545;
+    background: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .success-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.error-text {
     font-size: 0.95rem;
     font-weight: 600;
 }
@@ -503,12 +537,14 @@ button[type="submit"]:active {
         font-size: 0.75rem;
     }
 
-    .success-message {
+    .success-message,
+    .error-message {
         padding: 12px 16px;
         font-size: 0.9rem;
     }
 
-    .success-icon {
+    .success-icon,
+    .error-icon {
         width: 26px;
         height: 26px;
         font-size: 1.2rem;

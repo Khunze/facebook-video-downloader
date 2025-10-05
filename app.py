@@ -76,12 +76,10 @@ def dmca():
 def download():
     url = request.form.get('url', '').strip()
     if not url:
-        flash('Please enter a Facebook video URL.')
-        return redirect(url_for('index'))
+        return redirect(url_for('index', error='Please enter a Facebook video URL'))
     # Basic validation to reduce accidental non-Facebook inputs
     if not (url.startswith('http://') or url.startswith('https://')):
-        flash('Please provide a valid URL starting with http:// or https://')
-        return redirect(url_for('index'))
+        return redirect(url_for('index', error='Please provide a valid URL starting with http:// or https://'))
 
     # Get quality preference
     quality = request.form.get('quality', 'best')
@@ -138,8 +136,18 @@ def download():
         Thread(target=delete_file, daemon=True).start()
         return response
     except Exception as e:
-        flash(f"Error: {str(e)}")
-        return redirect(url_for('index'))
+        error_msg = str(e)
+        # Simplify common errors for users
+        if 'private' in error_msg.lower() or 'unavailable' in error_msg.lower():
+            error_msg = 'This video is private or unavailable. Please check the URL and try again.'
+        elif 'not found' in error_msg.lower() or '404' in error_msg:
+            error_msg = 'Video not found. Please check the URL and try again.'
+        elif 'network' in error_msg.lower() or 'connection' in error_msg.lower():
+            error_msg = 'Network error. Please check your connection and try again.'
+        else:
+            error_msg = f'Download failed: {error_msg[:100]}'  # Limit error message length
+        
+        return redirect(url_for('index', error=error_msg))
     finally:
         if cookies_file and os.path.exists(cookies_file):
             os.remove(cookies_file)
