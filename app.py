@@ -1,15 +1,14 @@
 # Facebook Video Downloader Flask App
 
-from flask import Flask, render_template, request, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, send_file, redirect, url_for
 import os
 import yt_dlp
 import uuid
-import tempfile
 import time
 from threading import Thread
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Needed for flash messages
+app.secret_key = 'natorverse_fb_downloader_2025_secure_key_x9k2m5p8'
 # Ensure downloads directory exists at import time (works with flask run and reloader)
 os.makedirs('downloads', exist_ok=True)
 
@@ -90,21 +89,8 @@ def download():
         'low': 'bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best'
     }
 
-    cookies_file = None
-    if 'cookies' in request.files and request.files['cookies'].filename:
-        cookies_upload = request.files['cookies']
-        # Save cookies to a real temporary file (system temp). Windows-friendly.
-        temp = tempfile.NamedTemporaryFile(delete=False, suffix='.txt')
-        cookies_upload.save(temp.name)
-        cookies_file = temp.name
-
-    # Generate timestamp and unique ID for filename
-    from datetime import datetime
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    file_id = str(uuid.uuid4())[:8]  # Short UUID
-    
-    # Download with video title
-    outtmpl = f"downloads/{timestamp}_{file_id}_%(title)s.%(ext)s"
+    file_id = str(uuid.uuid4())
+    outtmpl = f"downloads/{file_id}.mp4"
     ydl_opts = {
         'outtmpl': outtmpl,
         'format': quality_formats.get(quality, 'best[ext=mp4]/best'),
@@ -119,26 +105,15 @@ def download():
             'Referer': 'https://www.facebook.com/',
         },
     }
-    if cookies_file:
-        ydl_opts['cookiefile'] = cookies_file
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            # Get the actual filename that was created
-            downloaded_file = ydl.prepare_filename(info)
-        
-        # Provide a friendly download filename to user
-        video_title = info.get('title', 'facebook_video')
-        # Clean title for filename
-        safe_title = "".join(c for c in video_title if c.isalnum() or c in (' ', '-', '_')).strip()
-        safe_title = safe_title[:50]  # Limit length
-        
-        response = send_file(downloaded_file, as_attachment=True, download_name=f'{safe_title}.mp4')
+            ydl.download([url])
+        # Provide a friendly download filename
+        response = send_file(outtmpl, as_attachment=True, download_name='facebook_video.mp4')
         
         # Files will be kept for 10 days (automatic cleanup handles deletion)
-        # Files are saved with timestamp, ID, and video title for easy tracking
-        print(f"Downloaded: {downloaded_file}")
+        # No immediate deletion - files remain available
         return response
     except Exception as e:
         error_msg = str(e)
@@ -153,9 +128,6 @@ def download():
             error_msg = f'Download failed: {error_msg[:100]}'  # Limit error message length
         
         return redirect(url_for('index', error=error_msg))
-    finally:
-        if cookies_file and os.path.exists(cookies_file):
-            os.remove(cookies_file)
 
 if __name__ == '__main__':
     # For local development
