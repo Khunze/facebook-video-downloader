@@ -7,55 +7,14 @@ import uuid
 import tempfile
 import time
 from threading import Thread
-from datetime import datetime
-import json
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Needed for flash messages
 # Ensure downloads directory exists at import time (works with flask run and reloader)
 os.makedirs('downloads', exist_ok=True)
 
-# Download log file
-DOWNLOAD_LOG = 'download_history.json'
-
-def log_download(url, quality, success=True, error=None, video_title=None):
-    """Log download activity to JSON file"""
-    log_entry = {
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'url': url,
-        'quality': quality,
-        'success': success,
-        'error': error,
-        'video_title': video_title,
-        'ip_address': request.remote_addr,
-        'user_agent': request.headers.get('User-Agent', 'Unknown')
-    }
-    
-    # Read existing logs
-    try:
-        if os.path.exists(DOWNLOAD_LOG):
-            with open(DOWNLOAD_LOG, 'r', encoding='utf-8') as f:
-                logs = json.load(f)
-        else:
-            logs = []
-    except:
-        logs = []
-    
-    # Add new log
-    logs.append(log_entry)
-    
-    # Keep only last 1000 entries
-    logs = logs[-1000:]
-    
-    # Write back
-    try:
-        with open(DOWNLOAD_LOG, 'w', encoding='utf-8') as f:
-            json.dump(logs, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error writing log: {e}")
-
 def cleanup_old_files():
-    """Delete files older than 1 hour from downloads folder"""
+    """Delete files older than 24 hours from downloads folder"""
     while True:
         try:
             current_time = time.time()
@@ -63,14 +22,14 @@ def cleanup_old_files():
             for filename in os.listdir(downloads_dir):
                 filepath = os.path.join(downloads_dir, filename)
                 if os.path.isfile(filepath):
-                    # Check if file is older than 1 hour (3600 seconds)
-                    if current_time - os.path.getmtime(filepath) > 3600:
+                    # Check if file is older than 24 hours (86400 seconds)
+                    if current_time - os.path.getmtime(filepath) > 86400:
                         os.remove(filepath)
                         print(f"Cleaned up old file: {filename}")
         except Exception as e:
             print(f"Cleanup error: {e}")
-        # Run cleanup every 30 minutes
-        time.sleep(1800)
+        # Run cleanup every 6 hours
+        time.sleep(21600)
 
 # Start cleanup thread
 cleanup_thread = Thread(target=cleanup_old_files, daemon=True)
@@ -111,34 +70,6 @@ def disclaimer():
 @app.route('/dmca')
 def dmca():
     return render_template('dmca.html')
-
-@app.route('/admin')
-def admin():
-    """Admin dashboard to view download history"""
-    try:
-        if os.path.exists(DOWNLOAD_LOG):
-            with open(DOWNLOAD_LOG, 'r', encoding='utf-8') as f:
-                logs = json.load(f)
-        else:
-            logs = []
-    except:
-        logs = []
-    
-    # Reverse to show newest first
-    logs = list(reversed(logs))
-    
-    # Calculate statistics
-    total_downloads = len(logs)
-    successful_downloads = sum(1 for log in logs if log.get('success', False))
-    failed_downloads = total_downloads - successful_downloads
-    success_rate = round((successful_downloads / total_downloads * 100) if total_downloads > 0 else 0, 1)
-    
-    return render_template('admin.html', 
-                         logs=logs,
-                         total_downloads=total_downloads,
-                         successful_downloads=successful_downloads,
-                         failed_downloads=failed_downloads,
-                         success_rate=success_rate)
 
 
 @app.route('/download', methods=['POST'])
@@ -187,28 +118,14 @@ def download():
         ydl_opts['cookiefile'] = cookies_file
 
     try:
-        # Extract video info first
-        video_title = None
-        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
-            try:
-                info = ydl.extract_info(url, download=False)
-                video_title = info.get('title', 'Unknown')
-            except:
-                video_title = 'Unknown'
-        
-        # Download video
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        
-        # Log successful download
-        log_download(url, quality, success=True, video_title=video_title)
-        
         # Provide a friendly download filename
         response = send_file(outtmpl, as_attachment=True, download_name='facebook_video.mp4')
         
-        # Schedule file deletion after sending (cleanup after 5 seconds)
+        # Schedule file deletion after sending (cleanup after 1 hour)
         def delete_file():
-            time.sleep(5)
+            time.sleep(3600)  # 1 hour
             try:
                 if os.path.exists(outtmpl):
                     os.remove(outtmpl)
@@ -229,9 +146,6 @@ def download():
             error_msg = 'Network error. Please check your connection and try again.'
         else:
             error_msg = f'Download failed: {error_msg[:100]}'  # Limit error message length
-        
-        # Log failed download
-        log_download(url, quality, success=False, error=error_msg)
         
         return redirect(url_for('index', error=error_msg))
     finally:
