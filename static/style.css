@@ -170,17 +170,141 @@ button[type="submit"]:active {
 }
 
 .footer {
-    margin-top: 30px;
-    padding-top: 20px;
+    margin-top: 40px;
+    padding: 30px 0 20px;
     border-top: 2px solid #e0e0e0;
-    text-align: center;
 }
 
-.footer p {
+.footer-content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.footer-brand h3 {
     color: #667eea;
-    font-weight: 600;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.footer-brand p {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.footer-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.footer-column h4 {
+    color: #333;
     font-size: 1rem;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.footer-column ul {
+    list-style: none;
+    padding: 0;
     margin: 0;
+}
+
+.footer-column ul li {
+    margin-bottom: 8px;
+}
+
+.footer-column ul li a {
+    color: #666;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.footer-column ul li a:hover {
+    color: #667eea;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.footer-bottom p {
+    color: #999;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* Page Content Styles */
+.page-content {
+    max-width: 800px;
+    text-align: left;
+}
+
+.page-content h1 {
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+.page-content h2 {
+    color: #333;
+    font-size: 1.3rem;
+    margin-top: 25px;
+    margin-bottom: 12px;
+}
+
+.page-content p {
+    color: #555;
+    line-height: 1.7;
+    margin-bottom: 15px;
+}
+
+.page-content ul {
+    color: #555;
+    line-height: 1.8;
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.page-content ul li {
+    margin-bottom: 8px;
+}
+
+.page-content a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.page-content a:hover {
+    text-decoration: underline;
+}
+
+.last-updated {
+    color: #999;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.back-link {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.back-link a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.back-link a:hover {
+    text-decoration: underline;
 }
 
 @media (max-width: 640px) {
@@ -195,5 +319,15 @@ button[type="submit"]:active {
     button[type="submit"] {
         font-size: 1rem;
         padding: 14px 28px;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .footer-links {
+        grid-template-columns: 1fr;
+        gap: 15px;
     }
 }
