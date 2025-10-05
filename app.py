@@ -83,6 +83,15 @@ def download():
         flash('Please provide a valid URL starting with http:// or https://')
         return redirect(url_for('index'))
 
+    # Get quality preference
+    quality = request.form.get('quality', 'best')
+    quality_formats = {
+        'best': 'best[ext=mp4]/best',
+        'hd': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best',
+        'sd': 'bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best',
+        'low': 'bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best'
+    }
+
     cookies_file = None
     if 'cookies' in request.files and request.files['cookies'].filename:
         cookies_upload = request.files['cookies']
@@ -95,7 +104,7 @@ def download():
     outtmpl = f"downloads/{file_id}.mp4"
     ydl_opts = {
         'outtmpl': outtmpl,
-        'format': 'best[ext=mp4]/best',
+        'format': quality_formats.get(quality, 'best[ext=mp4]/best'),
         'quiet': True,
         'noplaylist': True,
         # Improve robustness with Facebook
