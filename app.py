@@ -14,7 +14,7 @@ app.secret_key = 'your_secret_key'  # Needed for flash messages
 os.makedirs('downloads', exist_ok=True)
 
 def cleanup_old_files():
-    """Delete files older than 24 hours from downloads folder"""
+    """Delete files older than 10 days from downloads folder"""
     while True:
         try:
             current_time = time.time()
@@ -22,14 +22,14 @@ def cleanup_old_files():
             for filename in os.listdir(downloads_dir):
                 filepath = os.path.join(downloads_dir, filename)
                 if os.path.isfile(filepath):
-                    # Check if file is older than 24 hours (86400 seconds)
-                    if current_time - os.path.getmtime(filepath) > 86400:
+                    # Check if file is older than 10 days (864000 seconds)
+                    if current_time - os.path.getmtime(filepath) > 864000:
                         os.remove(filepath)
                         print(f"Cleaned up old file: {filename}")
         except Exception as e:
             print(f"Cleanup error: {e}")
-        # Run cleanup every 6 hours
-        time.sleep(21600)
+        # Run cleanup every 24 hours
+        time.sleep(86400)
 
 # Start cleanup thread
 cleanup_thread = Thread(target=cleanup_old_files, daemon=True)
@@ -123,17 +123,8 @@ def download():
         # Provide a friendly download filename
         response = send_file(outtmpl, as_attachment=True, download_name='facebook_video.mp4')
         
-        # Schedule file deletion after sending (cleanup after 1 hour)
-        def delete_file():
-            time.sleep(3600)  # 1 hour
-            try:
-                if os.path.exists(outtmpl):
-                    os.remove(outtmpl)
-                    print(f"Deleted downloaded file: {outtmpl}")
-            except Exception as e:
-                print(f"Error deleting file: {e}")
-        
-        Thread(target=delete_file, daemon=True).start()
+        # Files will be kept for 10 days (automatic cleanup handles deletion)
+        # No immediate deletion - files remain available
         return response
     except Exception as e:
         error_msg = str(e)
