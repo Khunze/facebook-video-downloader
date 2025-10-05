@@ -35,6 +35,18 @@ def privacy():
 def terms():
     return render_template('terms.html')
 
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/disclaimer')
+def disclaimer():
+    return render_template('disclaimer.html')
+
+@app.route('/dmca')
+def dmca():
+    return render_template('dmca.html')
+
 
 @app.route('/download', methods=['POST'])
 def download():
