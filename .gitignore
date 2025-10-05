@@ -1,0 +1,8 @@
+downloads/
+*.pyc
+__pycache__/
+.venv/
+venv/
+*.mp4
+*.txt
+!requirements.txt
