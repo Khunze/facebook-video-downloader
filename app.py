@@ -112,6 +112,34 @@ def disclaimer():
 def dmca():
     return render_template('dmca.html')
 
+@app.route('/admin')
+def admin():
+    """Admin dashboard to view download history"""
+    try:
+        if os.path.exists(DOWNLOAD_LOG):
+            with open(DOWNLOAD_LOG, 'r', encoding='utf-8') as f:
+                logs = json.load(f)
+        else:
+            logs = []
+    except:
+        logs = []
+    
+    # Reverse to show newest first
+    logs = list(reversed(logs))
+    
+    # Calculate statistics
+    total_downloads = len(logs)
+    successful_downloads = sum(1 for log in logs if log.get('success', False))
+    failed_downloads = total_downloads - successful_downloads
+    success_rate = round((successful_downloads / total_downloads * 100) if total_downloads > 0 else 0, 1)
+    
+    return render_template('admin.html', 
+                         logs=logs,
+                         total_downloads=total_downloads,
+                         successful_downloads=successful_downloads,
+                         failed_downloads=failed_downloads,
+                         success_rate=success_rate)
+
 
 @app.route('/download', methods=['POST'])
 def download():
