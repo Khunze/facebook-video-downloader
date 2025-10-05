@@ -98,30 +98,13 @@ def download():
         cookies_upload.save(temp.name)
         cookies_file = temp.name
 
-    file_id = str(uuid.uuid4())
-    # First, get video info to extract title
-    info_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'extract_flat': False,
-    }
+    # Generate timestamp and unique ID for filename
+    from datetime import datetime
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    file_id = str(uuid.uuid4())[:8]  # Short UUID
     
-    video_title = "facebook_video"
-    try:
-        with yt_dlp.YoutubeDL(info_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            if info and 'title' in info:
-                # Clean the title for filename (remove special characters)
-                video_title = "".join(c for c in info['title'] if c.isalnum() or c in (' ', '-', '_')).strip()
-                video_title = video_title[:50]  # Limit length
-    except:
-        pass  # If we can't get title, use default
-    
-    # Create filename with timestamp and title
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    filename = f"{timestamp}_{file_id[:8]}_{video_title}.mp4"
-    outtmpl = f"downloads/{filename}"
-    
+    # Download with video title
+    outtmpl = f"downloads/{timestamp}_{file_id}_%(title)s.%(ext)s"
     ydl_opts = {
         'outtmpl': outtmpl,
         'format': quality_formats.get(quality, 'best[ext=mp4]/best'),
@@ -141,13 +124,21 @@ def download():
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        # Provide a friendly download filename with video title
-        download_name = f"{video_title}.mp4" if video_title != "facebook_video" else "facebook_video.mp4"
-        response = send_file(outtmpl, as_attachment=True, download_name=download_name)
+            info = ydl.extract_info(url, download=True)
+            # Get the actual filename that was created
+            downloaded_file = ydl.prepare_filename(info)
+        
+        # Provide a friendly download filename to user
+        video_title = info.get('title', 'facebook_video')
+        # Clean title for filename
+        safe_title = "".join(c for c in video_title if c.isalnum() or c in (' ', '-', '_')).strip()
+        safe_title = safe_title[:50]  # Limit length
+        
+        response = send_file(downloaded_file, as_attachment=True, download_name=f'{safe_title}.mp4')
         
         # Files will be kept for 10 days (automatic cleanup handles deletion)
-        # No immediate deletion - files remain available
+        # Files are saved with timestamp, ID, and video title for easy tracking
+        print(f"Downloaded: {downloaded_file}")
         return response
     except Exception as e:
         error_msg = str(e)
