@@ -127,19 +127,30 @@
 			const btnText = btn.querySelector('.btn-text');
 			const btnLoader = btn.querySelector('.btn-loader');
 			const successMsg = document.getElementById('successMessage');
+			const urlInput = document.querySelector('input[name="url"]');
+			
+			// Validate URL before showing loading
+			if (!urlInput.value.trim()) {
+				return; // Let HTML5 validation handle it
+			}
 			
 			// Show loading state
 			btnText.style.display = 'none';
 			btnLoader.style.display = 'inline-flex';
 			btn.disabled = true;
 			
-			// Show success message after a short delay
+			// Show success message
 			setTimeout(function() {
 				successMsg.style.display = 'flex';
-				setTimeout(function() {
-					successMsg.style.display = 'none';
-				}, 5000);
-			}, 500);
+			}, 300);
+			
+			// Reset button state after download completes (or timeout)
+			setTimeout(function() {
+				btnText.style.display = 'inline';
+				btnLoader.style.display = 'none';
+				btn.disabled = false;
+				successMsg.style.display = 'none';
+			}, 10000); // 10 seconds timeout
 		});
 
 		// Animate stats counter on page load
@@ -157,10 +168,16 @@
 			}, 30);
 		}
 
+		// Animate percentage differently
+		function animatePercentage(element) {
+			element.textContent = '100%';
+		}
+
 		window.addEventListener('load', function() {
 			const statNumbers = document.querySelectorAll('.stat-number');
 			if (statNumbers[0]) animateCounter(statNumbers[0], 50000);
 			if (statNumbers[1]) animateCounter(statNumbers[1], 10000);
+			if (statNumbers[2]) animatePercentage(statNumbers[2]);
 		});
 	</script>
 </body>
