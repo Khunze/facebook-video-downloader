@@ -5,11 +5,35 @@ import os
 import yt_dlp
 import uuid
 import tempfile
+import time
+from threading import Thread
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Needed for flash messages
 # Ensure downloads directory exists at import time (works with flask run and reloader)
 os.makedirs('downloads', exist_ok=True)
+
+def cleanup_old_files():
+    """Delete files older than 1 hour from downloads folder"""
+    while True:
+        try:
+            current_time = time.time()
+            downloads_dir = 'downloads'
+            for filename in os.listdir(downloads_dir):
+                filepath = os.path.join(downloads_dir, filename)
+                if os.path.isfile(filepath):
+                    # Check if file is older than 1 hour (3600 seconds)
+                    if current_time - os.path.getmtime(filepath) > 3600:
+                        os.remove(filepath)
+                        print(f"Cleaned up old file: {filename}")
+        except Exception as e:
+            print(f"Cleanup error: {e}")
+        # Run cleanup every 30 minutes
+        time.sleep(1800)
+
+# Start cleanup thread
+cleanup_thread = Thread(target=cleanup_old_files, daemon=True)
+cleanup_thread.start()
 
 @app.route('/')
 def index():
@@ -90,7 +114,20 @@ def download():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         # Provide a friendly download filename
-        return send_file(outtmpl, as_attachment=True, download_name='facebook_video.mp4')
+        response = send_file(outtmpl, as_attachment=True, download_name='facebook_video.mp4')
+        
+        # Schedule file deletion after sending (cleanup after 5 seconds)
+        def delete_file():
+            time.sleep(5)
+            try:
+                if os.path.exists(outtmpl):
+                    os.remove(outtmpl)
+                    print(f"Deleted downloaded file: {outtmpl}")
+            except Exception as e:
+                print(f"Error deleting file: {e}")
+        
+        Thread(target=delete_file, daemon=True).start()
+        return response
     except Exception as e:
         flash(f"Error: {str(e)}")
         return redirect(url_for('index'))
