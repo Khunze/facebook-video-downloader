@@ -108,12 +108,18 @@ def download():
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        # Provide a friendly download filename
-        response = send_file(outtmpl, as_attachment=True, download_name='facebook_video.mp4')
+            info = ydl.extract_info(url, download=True)
+            video_title = info.get('title', 'video')
         
-        # Files will be kept for 10 days (automatic cleanup handles deletion)
-        # No immediate deletion - files remain available
+        # Provide a friendly download filename with video title
+        safe_title = "".join(c for c in video_title if c.isalnum() or c in (' ', '-', '_')).strip()[:50]
+        download_name = f'{safe_title}.mp4' if safe_title else 'facebook_video.mp4'
+        
+        response = send_file(outtmpl, as_attachment=True, download_name=download_name)
+        
+        # File stays in downloads folder for 10 days
+        # You can see all downloaded videos in the downloads folder
+        print(f"Video downloaded: {download_name} - Saved as: {outtmpl}")
         return response
     except Exception as e:
         error_msg = str(e)
