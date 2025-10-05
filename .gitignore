@@ -6,4 +6,3 @@ venv/
 *.mp4
 *.txt
 !requirements.txt
-download_history.json

@@ -71,6 +71,41 @@ def disclaimer():
 def dmca():
     return render_template('dmca.html')
 
+@app.route('/files')
+def list_files():
+    """List all downloaded files"""
+    try:
+        files = []
+        downloads_dir = 'downloads'
+        for filename in os.listdir(downloads_dir):
+            filepath = os.path.join(downloads_dir, filename)
+            if os.path.isfile(filepath):
+                # Get file info
+                file_size = os.path.getsize(filepath)
+                file_time = os.path.getmtime(filepath)
+                files.append({
+                    'name': filename,
+                    'size': round(file_size / (1024 * 1024), 2),  # Size in MB
+                    'date': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(file_time))
+                })
+        # Sort by date (newest first)
+        files.sort(key=lambda x: x['date'], reverse=True)
+        return render_template('files.html', files=files, total=len(files))
+    except Exception as e:
+        return f"Error listing files: {str(e)}", 500
+
+@app.route('/files/<filename>')
+def download_file(filename):
+    """Direct access to download a specific file"""
+    try:
+        filepath = os.path.join('downloads', filename)
+        if os.path.exists(filepath):
+            return send_file(filepath, as_attachment=True, download_name=filename)
+        else:
+            return "File not found", 404
+    except Exception as e:
+        return f"Error downloading file: {str(e)}", 500
+
 
 @app.route('/download', methods=['POST'])
 def download():
