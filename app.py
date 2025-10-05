@@ -71,41 +71,6 @@ def disclaimer():
 def dmca():
     return render_template('dmca.html')
 
-@app.route('/files')
-def list_files():
-    """List all downloaded files"""
-    try:
-        files = []
-        downloads_dir = 'downloads'
-        for filename in os.listdir(downloads_dir):
-            filepath = os.path.join(downloads_dir, filename)
-            if os.path.isfile(filepath):
-                # Get file info
-                file_size = os.path.getsize(filepath)
-                file_time = os.path.getmtime(filepath)
-                files.append({
-                    'name': filename,
-                    'size': round(file_size / (1024 * 1024), 2),  # Size in MB
-                    'date': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(file_time))
-                })
-        # Sort by date (newest first)
-        files.sort(key=lambda x: x['date'], reverse=True)
-        return render_template('files.html', files=files, total=len(files))
-    except Exception as e:
-        return f"Error listing files: {str(e)}", 500
-
-@app.route('/files/<filename>')
-def download_file(filename):
-    """Direct access to download a specific file"""
-    try:
-        filepath = os.path.join('downloads', filename)
-        if os.path.exists(filepath):
-            return send_file(filepath, as_attachment=True, download_name=filename)
-        else:
-            return "File not found", 404
-    except Exception as e:
-        return f"Error downloading file: {str(e)}", 500
-
 
 @app.route('/download', methods=['POST'])
 def download():
@@ -134,7 +99,29 @@ def download():
         cookies_file = temp.name
 
     file_id = str(uuid.uuid4())
-    outtmpl = f"downloads/{file_id}.mp4"
+    # First, get video info to extract title
+    info_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'extract_flat': False,
+    }
+    
+    video_title = "facebook_video"
+    try:
+        with yt_dlp.YoutubeDL(info_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if info and 'title' in info:
+                # Clean the title for filename (remove special characters)
+                video_title = "".join(c for c in info['title'] if c.isalnum() or c in (' ', '-', '_')).strip()
+                video_title = video_title[:50]  # Limit length
+    except:
+        pass  # If we can't get title, use default
+    
+    # Create filename with timestamp and title
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    filename = f"{timestamp}_{file_id[:8]}_{video_title}.mp4"
+    outtmpl = f"downloads/{filename}"
+    
     ydl_opts = {
         'outtmpl': outtmpl,
         'format': quality_formats.get(quality, 'best[ext=mp4]/best'),
@@ -155,8 +142,9 @@ def download():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        # Provide a friendly download filename
-        response = send_file(outtmpl, as_attachment=True, download_name='facebook_video.mp4')
+        # Provide a friendly download filename with video title
+        download_name = f"{video_title}.mp4" if video_title != "facebook_video" else "facebook_video.mp4"
+        response = send_file(outtmpl, as_attachment=True, download_name=download_name)
         
         # Files will be kept for 10 days (automatic cleanup handles deletion)
         # No immediate deletion - files remain available
