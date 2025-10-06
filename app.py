@@ -1,6 +1,7 @@
 # Facebook Video Downloader Flask App
 
 from flask import Flask, render_template, request, send_file, redirect, url_for, jsonify
+from werkzeug.security import check_password_hash
 import os
 import yt_dlp
 import uuid
@@ -69,46 +70,6 @@ cleanup_thread.start()
 def index():
     return render_template('index.html')
 
-@app.route('/api/video-info', methods=['POST'])
-def get_video_info():
-    """Get video information without downloading"""
-    url = request.json.get('url', '').strip()
-    if not url:
-        return jsonify({'error': 'No URL provided'}), 400
-
-    if not (url.startswith('http://') or url.startswith('https://')):
-        return jsonify({'error': 'Invalid URL format'}), 400
-
-    try:
-        # Get video info without downloading
-        ydl_opts = {
-            'quiet': True,
-            'no_warnings': True,
-            'skip_download': True,
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-                'Referer': 'https://www.facebook.com/',
-            },
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-
-        # Extract relevant info
-        video_info = {
-            'title': info.get('title', 'Unknown Video'),
-            'duration': info.get('duration', 0),
-            'thumbnail': info.get('thumbnail', ''),
-            'filesize': info.get('filesize', 0),
-            'formats': len(info.get('formats', [])),
-            'quality': info.get('height', 0) if info.get('height') else 'Unknown'
-        }
-
-        return jsonify(video_info)
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/stats')
 def get_stats():
     """API endpoint to get real-time stats"""
@@ -147,9 +108,22 @@ def terms():
 def contact():
     return render_template('contact.html')
 
-@app.route('/disclaimer')
-def disclaimer():
-    return render_template('disclaimer.html')
+@app.route('/admin')
+def admin():
+    # Simple password protection (replace with your password)
+    admin_password = 'admin123'  # Change this!
+
+    if request.args.get('password') != admin_password:
+        return '''
+        <html>
+        <head><title>Admin Access</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+            <form method="get">
+                <input type="password" name="password" placeholder="Enter admin password" style="padding: 10px; font-size: 16px;">
+                <button type="submit" style="padding: 10px 20px; font-size: 16px;">Access Dashboard</button>
+            </form>
+        </body>
+        </html>
 
 @app.route('/dmca')
 def dmca():
@@ -197,15 +171,15 @@ def download():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        
+
         # Update statistics
         user_ip = request.remote_addr
         update_stats(user_ip)
-        
+
         # Provide a professional download filename with timestamp
         download_name = f"Facebook_Video_{timestamp}.mp4"
         response = send_file(outtmpl, as_attachment=True, download_name=download_name)
-        
+
         # Files will be kept for 10 days (automatic cleanup handles deletion)
         # No immediate deletion - files remain available
         return response
@@ -220,7 +194,7 @@ def download():
             error_msg = 'Network error. Please check your connection and try again.'
         else:
             error_msg = f'Download failed: {error_msg[:100]}'  # Limit error message length
-        
+
         return redirect(url_for('index', error=error_msg))
 
 if __name__ == '__main__':

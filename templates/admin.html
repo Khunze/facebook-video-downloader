@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Natorverse</title>
+    <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-CY5XV1MVZT"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-CY5XV1MVZT');
+    </script>
+
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 5px solid #667eea;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .activity-log {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.2rem;
+        }
+
+        .activity-download {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .activity-user {
+            background: #cce7ff;
+            color: #0066cc;
+        }
+
+        .activity-text {
+            flex: 1;
+        }
+
+        .activity-time {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .system-status {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .status-good {
+            background: #28a745;
+        }
+
+        .status-warning {
+            background: #ffc107;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <a href="/" class="back-link">← Back to Main Site</a>
+
+        <div class="admin-header">
+            <h1>🛠️ Admin Dashboard</h1>
+            <p>Real-time analytics and system monitoring</p>
+        </div>
+
+        <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalDownloads">0</div>
+                <div class="stat-label">Total Downloads</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-number" id="uniqueUsers">0</div>
+                <div class="stat-label">Unique Users</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-number" id="downloadsToday">0</div>
+                <div class="stat-label">Downloads Today</div>
+            </div>
+        </div>
+
+        <div class="activity-log">
+            <h3>📋 Recent Activity</h3>
+            <div id="activityList">
+                <div class="activity-item">
+                    <div class="activity-icon activity-download">⬇️</div>
+                    <div class="activity-text">
+                        <strong>Download Completed</strong><br>
+                        <span class="activity-time">Loading recent activity...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="system-status">
+            <h3>🔧 System Status</h3>
+            <div class="status-item">
+                <span>✅ Server Status</span>
+                <span>Running</span>
+            </div>
+            <div class="status-item">
+                <span>✅ Download Service</span>
+                <span>Active</span>
+            </div>
+            <div class="status-item">
+                <span>✅ File Cleanup</span>
+                <span>Scheduled (24h)</span>
+            </div>
+            <div class="status-item">
+                <span>✅ Analytics</span>
+                <span>Tracking</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                // Load stats
+                const statsResponse = await fetch('/api/stats');
+                const stats = await statsResponse.json();
+
+                document.getElementById('totalDownloads').textContent = stats.total_downloads.toLocaleString();
+                document.getElementById('uniqueUsers').textContent = stats.unique_users.toLocaleString();
+                document.getElementById('downloadsToday').textContent = stats.total_downloads.toLocaleString();
+
+                // Load recent activity (simplified for demo)
+                loadRecentActivity();
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        function loadRecentActivity() {
+            const activityList = document.getElementById('activityList');
+            activityList.innerHTML = `
+                <div class="activity-item">
+                    <div class="activity-icon activity-download">⬇️</div>
+                    <div class="activity-text">
+                        <strong>System Ready</strong><br>
+                        <span class="activity-time">Dashboard loaded successfully</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon activity-user">👥</div>
+                    <div class="activity-text">
+                        <strong>Tracking Active</strong><br>
+                        <span class="activity-time">Real-time analytics enabled</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function refreshData() {
+            loadDashboard();
+        }
+
+        // Load dashboard on page load
+        window.addEventListener('load', function() {
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>
