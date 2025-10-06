@@ -124,6 +124,9 @@ def admin():
             </form>
         </body>
         </html>
+        '''
+
+    return render_template('admin.html')
 
 @app.route('/dmca')
 def dmca():
