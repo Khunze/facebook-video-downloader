@@ -180,7 +180,6 @@
 			</div>
 			<div class="footer-bottom">
 				<p>&copy; 2025 Natorverse. All rights reserved.</p>
-			</div>
 		</footer>
 	</div>
 
@@ -195,66 +194,12 @@
 			const successMsg = document.getElementById('successMessage');
 			const errorMsg = document.getElementById('errorMessage');
 			const errorText = errorMsg.querySelector('.error-text');
-			const urlInput = document.querySelector('input[name="url"]');
-
-			// Hide any previous messages
-			successMsg.style.display = 'none';
-			errorMsg.style.display = 'none';
-
-			// Validate URL before showing loading
-			if (!urlInput.value.trim()) {
-				return; // Let HTML5 validation handle it
-			}
-
-			// Basic URL validation
-			const url = urlInput.value.trim();
-			if (!url.startsWith('http://') && !url.startsWith('https://')) {
-				errorText.textContent = 'Please enter a valid URL starting with http:// or https://';
-				errorMsg.style.display = 'flex';
-				setTimeout(function() {
-					errorMsg.style.display = 'none';
-				}, 5000);
-				return;
-			}
-
+{{ ... }}
 			// Show loading state
 			btnText.style.display = 'none';
 			btnLoader.style.display = 'inline-flex';
 			btn.disabled = true;
-
-			try {
-				// Get video info first
-				const videoInfo = await getVideoInfo(url);
-				showVideoPreview(videoInfo);
-
-				// Start progress simulation
-				simulateProgress();
-
-				// Submit form after short delay (for better UX)
-				setTimeout(() => {
-					e.target.submit();
-				}, 1000);
-
-			} catch (error) {
-				// Show error if video info fails
-				errorText.textContent = error.message || 'Unable to get video information. Please check the URL and try again.';
-				errorMsg.style.display = 'flex';
-
-				// Reset button
-				btnText.style.display = 'inline';
-				btnLoader.style.display = 'none';
-				btn.disabled = false;
-
-				setTimeout(function() {
-					errorMsg.style.display = 'none';
-				}, 8000);
-			}
-		});
-
-		// Show error message if redirected back with error
-		window.addEventListener('load', function() {
-			const urlParams = new URLSearchParams(window.location.search);
-			const error = urlParams.get('error');
+			
 			if (error) {
 				const errorMsg = document.getElementById('errorMessage');
 				const errorText = errorMsg.querySelector('.error-text');
@@ -393,8 +338,6 @@
 				}
 			}, 200);
 		}
-
-		// Animate stats counter
 		function animateCounter(element, target) {
 			let current = 0;
 			const increment = Math.max(1, target / 50);
