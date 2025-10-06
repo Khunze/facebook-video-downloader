@@ -69,6 +69,46 @@ cleanup_thread.start()
 def index():
     return render_template('index.html')
 
+@app.route('/api/video-info', methods=['POST'])
+def get_video_info():
+    """Get video information without downloading"""
+    url = request.json.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'No URL provided'}), 400
+
+    if not (url.startswith('http://') or url.startswith('https://')):
+        return jsonify({'error': 'Invalid URL format'}), 400
+
+    try:
+        # Get video info without downloading
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'skip_download': True,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+                'Referer': 'https://www.facebook.com/',
+            },
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        # Extract relevant info
+        video_info = {
+            'title': info.get('title', 'Unknown Video'),
+            'duration': info.get('duration', 0),
+            'thumbnail': info.get('thumbnail', ''),
+            'filesize': info.get('filesize', 0),
+            'formats': len(info.get('formats', [])),
+            'quality': info.get('height', 0) if info.get('height') else 'Unknown'
+        }
+
+        return jsonify(video_info)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/stats')
 def get_stats():
     """API endpoint to get real-time stats"""
