@@ -1,7 +1,6 @@
 # Facebook Video Downloader Flask App
 
 from flask import Flask, render_template, request, send_file, redirect, url_for, jsonify
-from werkzeug.security import check_password_hash
 import os
 import yt_dlp
 import uuid
@@ -107,26 +106,6 @@ def terms():
 @app.route('/contact')
 def contact():
     return render_template('contact.html')
-
-@app.route('/admin')
-def admin():
-    # Simple password protection (replace with your password)
-    admin_password = 'admin123'  # Change this!
-
-    if request.args.get('password') != admin_password:
-        return '''
-        <html>
-        <head><title>Admin Access</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-            <form method="get">
-                <input type="password" name="password" placeholder="Enter admin password" style="padding: 10px; font-size: 16px;">
-                <button type="submit" style="padding: 10px 20px; font-size: 16px;">Access Dashboard</button>
-            </form>
-        </body>
-        </html>
-        '''
-
-    return render_template('admin.html')
 
 @app.route('/dmca')
 def dmca():
