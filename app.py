@@ -132,9 +132,62 @@ def terms():
 def contact():
     return render_template('contact.html')
 
-@app.route('/dmca')
-def dmca():
-    return render_template('dmca.html')
+@app.route('/preview', methods=['POST'])
+def preview():
+    url = request.form.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'Please enter a Facebook video URL'})
+
+    # Basic validation
+    if not (url.startswith('http://') or url.startswith('https://')):
+        return jsonify({'error': 'Please provide a valid URL starting with http:// or https://'})
+
+    try:
+        # Extract video info without downloading
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': False,
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Extract info without downloading
+            info = ydl.extract_info(url, download=False)
+
+            # Get video details
+            video_info = {
+                'title': info.get('title', 'Unknown Video'),
+                'thumbnail': info.get('thumbnail', ''),
+                'duration': info.get('duration', 0),
+                'uploader': info.get('uploader', 'Unknown'),
+                'view_count': info.get('view_count', 0),
+                'upload_date': info.get('upload_date', ''),
+                'formats': []
+            }
+
+            # Get available formats with quality info
+            formats = info.get('formats', [])
+            for fmt in formats:
+                if fmt.get('ext') == 'mp4':  # Only MP4 formats
+                    format_info = {
+                        'format_id': fmt.get('format_id', ''),
+                        'quality': fmt.get('height', 0),
+                        'filesize': fmt.get('filesize', 0),
+                        'ext': fmt.get('ext', ''),
+                        'fps': fmt.get('fps', 0)
+                    }
+                    video_info['formats'].append(format_info)
+
+            return jsonify(video_info)
+
+    except Exception as e:
+        error_msg = str(e)
+        if 'private' in error_msg.lower() or 'unavailable' in error_msg.lower():
+            return jsonify({'error': 'This video is private or unavailable. Please check the URL and try again.'})
+        elif 'not found' in error_msg.lower() or '404' in error_msg:
+            return jsonify({'error': 'Video not found. Please check the URL and try again.'})
+        else:
+            return jsonify({'error': f'Preview failed: {error_msg[:100]}'})
 
 
 @app.route('/download', methods=['POST'])

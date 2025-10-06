@@ -88,7 +88,35 @@
 			<span class="error-text"></span>
 		</div>
 		
-		<form action="/download" method="post" id="downloadForm">
+		<!-- Video Preview -->
+		<div id="videoPreview" class="video-preview" style="display: none;">
+			<div class="preview-header">
+				<span class="preview-icon">📺</span>
+				<span class="preview-title">Video Preview</span>
+			</div>
+			<div class="preview-content">
+				<img id="previewThumbnail" class="preview-thumbnail" alt="Video thumbnail">
+				<div class="preview-info">
+					<h3 id="previewVideoTitle">Video Title</h3>
+					<div class="preview-details">
+						<span id="previewDuration" class="preview-detail">Duration: --:--</span>
+						<span id="previewUploader" class="preview-detail">Uploader: Unknown</span>
+						<span id="previewViews" class="preview-detail">Views: 0</span>
+					</div>
+				</div>
+			</div>
+			<div class="preview-actions">
+				<button type="button" id="changeVideoBtn" class="btn-secondary">Change Video</button>
+				<button type="submit" id="downloadBtn" class="btn-primary">
+					<span class="btn-text">Download Video</span>
+					<span class="btn-loader" style="display: none;">
+						<span class="spinner"></span> Downloading...
+					</span>
+				</button>
+			</div>
+		</div>
+		
+		<form action="/download" method="post" id="downloadForm" style="display: none;">
 			<input type="text" name="url" placeholder="Paste Facebook video URL here" required>
 			
 			<!-- Quality Selector -->
@@ -161,67 +189,173 @@
 	</div>
 
 	<script>
-		// Loading indicator, success and error messages
+		// Video preview functionality
+		let currentVideoUrl = '';
+
 		document.getElementById('downloadForm').addEventListener('submit', function(e) {
-			const btn = document.getElementById('downloadBtn');
-			const btnText = btn.querySelector('.btn-text');
-			const btnLoader = btn.querySelector('.btn-loader');
-			const successMsg = document.getElementById('successMessage');
-			const errorMsg = document.getElementById('errorMessage');
-			const errorText = errorMsg.querySelector('.error-text');
+			e.preventDefault(); // Prevent direct form submission
+			
 			const urlInput = document.querySelector('input[name="url"]');
+			const url = urlInput.value.trim();
 			
-			// Hide any previous messages
-			successMsg.style.display = 'none';
-			errorMsg.style.display = 'none';
-			
-			// Validate URL before showing loading
-			if (!urlInput.value.trim()) {
-				return; // Let HTML5 validation handle it
+			if (!url) {
+				showError('Please enter a Facebook video URL');
+				return;
 			}
 			
 			// Basic URL validation
-			const url = urlInput.value.trim();
 			if (!url.startsWith('http://') && !url.startsWith('https://')) {
-				errorText.textContent = 'Please enter a valid URL starting with http:// or https://';
-				errorMsg.style.display = 'flex';
-				setTimeout(function() {
-					errorMsg.style.display = 'none';
-				}, 5000);
+				showError('Please enter a valid URL starting with http:// or https://');
 				return;
 			}
+			
+			// Show loading state
+			showLoading('Fetching video info...');
+			
+			// Get video preview
+			getVideoPreview(url);
+		});
+
+		async function getVideoPreview(url) {
+			try {
+				const formData = new FormData();
+				formData.append('url', url);
+				
+				const response = await fetch('/preview', {
+					method: 'POST',
+					body: formData
+				});
+				
+				const data = await response.json();
+				
+				if (data.error) {
+					showError(data.error);
+					return;
+				}
+				
+				// Show video preview
+				showVideoPreview(data, url);
+				
+			} catch (error) {
+				console.error('Preview error:', error);
+				showError('Failed to load video preview. Please try again.');
+			}
+		}
+
+		function showVideoPreview(videoInfo, url) {
+			currentVideoUrl = url;
+			
+			// Update preview elements
+			document.getElementById('previewThumbnail').src = videoInfo.thumbnail || '';
+			document.getElementById('previewVideoTitle').textContent = videoInfo.title || 'Unknown Video';
+			
+			// Format duration
+			const duration = formatDuration(videoInfo.duration);
+			document.getElementById('previewDuration').textContent = `Duration: ${duration}`;
+			
+			document.getElementById('previewUploader').textContent = `Uploader: ${videoInfo.uploader || 'Unknown'}`;
+			document.getElementById('previewViews').textContent = `Views: ${formatNumber(videoInfo.view_count || 0)}`;
+			
+			// Update form with URL
+			const form = document.getElementById('downloadForm');
+			form.querySelector('input[name="url"]').value = url;
+			
+			// Show preview, hide input form
+			document.getElementById('videoPreview').style.display = 'block';
+			document.getElementById('downloadForm').style.display = 'none';
+			
+			// Hide any previous messages
+			hideMessages();
+		}
+
+		function showError(message) {
+			const errorMsg = document.getElementById('errorMessage');
+			const errorText = errorMsg.querySelector('.error-text');
+			errorText.textContent = message;
+			errorMsg.style.display = 'flex';
+			hideLoading();
+		}
+
+		function showLoading(message = 'Loading...') {
+			// You can add a loading indicator here if needed
+		}
+
+		function hideLoading() {
+			// Hide loading indicator
+		}
+
+		function hideMessages() {
+			document.getElementById('successMessage').style.display = 'none';
+			document.getElementById('errorMessage').style.display = 'none';
+		}
+
+		function formatDuration(seconds) {
+			if (!seconds) return '--:--';
+			const hours = Math.floor(seconds / 3600);
+			const minutes = Math.floor((seconds % 3600) / 60);
+			const secs = seconds % 60;
+			
+			if (hours > 0) {
+				return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+			}
+			return `${minutes}:${secs.toString().padStart(2, '0')}`;
+		}
+
+		function formatNumber(num) {
+			if (!num) return '0';
+			return num.toLocaleString();
+		}
+
+		// Change video button
+		document.getElementById('changeVideoBtn')?.addEventListener('click', function() {
+			document.getElementById('videoPreview').style.display = 'none';
+			document.getElementById('downloadForm').style.display = 'block';
+			hideMessages();
+		});
+
+		// Enhanced download with loading state
+		document.getElementById('downloadBtn')?.addEventListener('click', function(e) {
+			e.preventDefault();
+			
+			const btn = document.getElementById('downloadBtn');
+			const btnText = btn.querySelector('.btn-text');
+			const btnLoader = btn.querySelector('.btn-loader');
 			
 			// Show loading state
 			btnText.style.display = 'none';
 			btnLoader.style.display = 'inline-flex';
 			btn.disabled = true;
 			
-			// Function to reset button state
-			function resetButton() {
+			// Submit the hidden form
+			const form = document.getElementById('downloadForm');
+			const formData = new FormData(form);
+			
+			// Submit via fetch for better control
+			fetch('/download', {
+				method: 'POST',
+				body: formData
+			})
+			.then(response => {
+				if (response.ok) {
+					// Success - show success message
+					document.getElementById('successMessage').style.display = 'flex';
+					setTimeout(() => {
+						document.getElementById('successMessage').style.display = 'none';
+					}, 5000);
+				} else {
+					throw new Error('Download failed');
+				}
+			})
+			.catch(error => {
+				console.error('Download error:', error);
+				showError('Download failed. Please try again.');
+			})
+			.finally(() => {
+				// Reset button
 				btnText.style.display = 'inline';
 				btnLoader.style.display = 'none';
 				btn.disabled = false;
-			}
-			
-			// Show success message after 1 second (server is processing)
-			setTimeout(function() {
-				successMsg.style.display = 'flex';
-			}, 1000);
-			
-			// Reset button after 3 seconds (download should have started by then)
-			setTimeout(function() {
-				resetButton();
-			}, 3000);
-			
-			// Hide success message after 7 seconds total
-			setTimeout(function() {
-				successMsg.style.display = 'none';
-			}, 7000);
-			
-			// Fallback: If page doesn't redirect/reload, ensure button resets
-			setTimeout(function() {
-				resetButton();
-			}, 8000);
+			});
 		});
 
 		// Show error message if redirected back with error
@@ -240,6 +374,103 @@
 				}, 8000);
 			}
 		});
+
+		// Fetch and display real-time stats
+		async function loadRealStats() {
+			try {
+				console.log('Loading real stats...');
+				const response = await fetch('/api/stats');
+				console.log('API response status:', response.status);
+				
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`);
+				}
+				
+				const data = await response.json();
+				console.log('Stats data received:', data);
+				
+				if (data.status === 'error') {
+					console.warn('API returned error status:', data.message);
+					// Use fallback values
+					updateStatsDisplay(0, 0);
+					return;
+				}
+				
+				const statNumbers = document.querySelectorAll('.stat-number');
+				console.log('Found stat elements:', statNumbers.length);
+				
+				// Animate total downloads
+				if (statNumbers[0]) {
+					console.log('Updating downloads from', statNumbers[0].textContent, 'to', data.total_downloads);
+					animateCounter(statNumbers[0], data.total_downloads || 0);
+				}
+				
+				// Animate unique users
+				if (statNumbers[1]) {
+					console.log('Updating users from', statNumbers[1].textContent, 'to', data.unique_users);
+					animateCounter(statNumbers[1], data.unique_users || 0);
+				}
+				
+				// Keep 100% Free Forever static
+				if (statNumbers[2]) {
+					statNumbers[2].textContent = '100%';
+				}
+				
+				console.log('Stats updated successfully');
+			} catch (error) {
+				console.error('Error loading stats:', error);
+				// Use fallback values
+				updateStatsDisplay(0, 0);
+			}
+		}
+
+		function updateStatsDisplay(downloads, users) {
+			const statNumbers = document.querySelectorAll('.stat-number');
+			
+			// Update downloads
+			if (statNumbers[0]) {
+				animateCounter(statNumbers[0], downloads);
+			}
+			
+			// Update users
+			if (statNumbers[1]) {
+				animateCounter(statNumbers[1], users);
+			}
+			
+			// Keep 100% Free Forever static
+			if (statNumbers[2]) {
+				statNumbers[2].textContent = '100%';
+			}
+		}
+
+		// Animate stats counter
+		function animateCounter(element, target) {
+			console.log('Animating counter for element:', element, 'target:', target);
+			let current = 0;
+			const increment = Math.max(1, Math.floor(target / 50));
+			console.log('Increment:', increment);
+			
+			element.textContent = '0+';
+			
+			const timer = setInterval(function() {
+				current += increment;
+				if (current >= target) {
+					element.textContent = target.toLocaleString() + '+';
+					console.log('Animation complete for target:', target);
+					clearInterval(timer);
+				} else {
+					element.textContent = Math.floor(current).toLocaleString() + '+';
+				}
+			}, 30);
+		}
+
+		// Load stats on page load
+		window.addEventListener('load', function() {
+			loadRealStats();
+		});
+	</script>
+</body>
+</html>
 
 		// Fetch and display real-time stats
 		async function loadRealStats() {
