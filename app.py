@@ -1,17 +1,47 @@
 # Facebook Video Downloader Flask App
 
-from flask import Flask, render_template, request, send_file, redirect, url_for
+from flask import Flask, render_template, request, send_file, redirect, url_for, jsonify
 import os
 import yt_dlp
 import uuid
 import time
 from threading import Thread
 from datetime import datetime
+import json
 
 app = Flask(__name__)
 app.secret_key = 'natorverse_fb_downloader_2025_secure_key_x9k2m5p8'
 # Ensure downloads directory exists at import time (works with flask run and reloader)
 os.makedirs('downloads', exist_ok=True)
+
+# Stats file to track downloads
+STATS_FILE = 'stats.json'
+
+def load_stats():
+    """Load download statistics"""
+    if os.path.exists(STATS_FILE):
+        with open(STATS_FILE, 'r') as f:
+            return json.load(f)
+    return {'total_downloads': 0, 'unique_users': set()}
+
+def save_stats(stats):
+    """Save download statistics"""
+    # Convert set to list for JSON serialization
+    stats_copy = stats.copy()
+    stats_copy['unique_users'] = list(stats_copy['unique_users'])
+    with open(STATS_FILE, 'w') as f:
+        json.dump(stats_copy, f)
+
+def update_stats(user_ip):
+    """Update download statistics"""
+    stats = load_stats()
+    if isinstance(stats['unique_users'], list):
+        stats['unique_users'] = set(stats['unique_users'])
+    
+    stats['total_downloads'] += 1
+    stats['unique_users'].add(user_ip)
+    save_stats(stats)
+    return stats
 
 def cleanup_old_files():
     """Delete files older than 10 days from downloads folder"""
@@ -38,6 +68,20 @@ cleanup_thread.start()
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/stats')
+def get_stats():
+    """API endpoint to get real-time stats"""
+    stats = load_stats()
+    if isinstance(stats['unique_users'], list):
+        unique_count = len(stats['unique_users'])
+    else:
+        unique_count = len(stats['unique_users'])
+    
+    return jsonify({
+        'total_downloads': stats['total_downloads'],
+        'unique_users': unique_count
+    })
 
 @app.route('/about')
 def about():
@@ -113,6 +157,11 @@ def download():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+        
+        # Update statistics
+        user_ip = request.remote_addr
+        update_stats(user_ip)
+        
         # Provide a professional download filename with timestamp
         download_name = f"Facebook_Video_{timestamp}.mp4"
         response = send_file(outtmpl, as_attachment=True, download_name=download_name)

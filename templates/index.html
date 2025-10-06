@@ -241,10 +241,42 @@
 			}
 		});
 
-		// Animate stats counter on page load
+		// Fetch and display real-time stats
+		async function loadRealStats() {
+			try {
+				const response = await fetch('/api/stats');
+				const data = await response.json();
+				
+				const statNumbers = document.querySelectorAll('.stat-number');
+				
+				// Animate total downloads
+				if (statNumbers[0]) {
+					animateCounter(statNumbers[0], data.total_downloads);
+				}
+				
+				// Animate unique users
+				if (statNumbers[1]) {
+					animateCounter(statNumbers[1], data.unique_users);
+				}
+				
+				// Keep 100% Free Forever static
+				if (statNumbers[2]) {
+					statNumbers[2].textContent = '100%';
+				}
+			} catch (error) {
+				console.error('Error loading stats:', error);
+				// Fallback to default values if API fails
+				const statNumbers = document.querySelectorAll('.stat-number');
+				if (statNumbers[0]) animateCounter(statNumbers[0], 0);
+				if (statNumbers[1]) animateCounter(statNumbers[1], 0);
+				if (statNumbers[2]) statNumbers[2].textContent = '100%';
+			}
+		}
+
+		// Animate stats counter
 		function animateCounter(element, target) {
 			let current = 0;
-			const increment = target / 50;
+			const increment = Math.max(1, target / 50);
 			const timer = setInterval(function() {
 				current += increment;
 				if (current >= target) {
@@ -256,16 +288,9 @@
 			}, 30);
 		}
 
-		// Animate percentage differently
-		function animatePercentage(element) {
-			element.textContent = '100%';
-		}
-
+		// Load stats on page load
 		window.addEventListener('load', function() {
-			const statNumbers = document.querySelectorAll('.stat-number');
-			if (statNumbers[0]) animateCounter(statNumbers[0], 50000);
-			if (statNumbers[1]) animateCounter(statNumbers[1], 10000);
-			if (statNumbers[2]) animatePercentage(statNumbers[2]);
+			loadRealStats();
 		});
 	</script>
 </body>
