@@ -6,6 +6,7 @@ import yt_dlp
 import uuid
 import time
 from threading import Thread
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'natorverse_fb_downloader_2025_secure_key_x9k2m5p8'
@@ -89,8 +90,11 @@ def download():
         'low': 'bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best'
     }
 
-    file_id = str(uuid.uuid4())
-    outtmpl = f"downloads/{file_id}.mp4"
+    # Generate professional filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    file_id = str(uuid.uuid4())[:8]  # Short unique ID
+    filename = f"FB_Video_{timestamp}_{file_id}"
+    outtmpl = f"downloads/{filename}.mp4"
     ydl_opts = {
         'outtmpl': outtmpl,
         'format': quality_formats.get(quality, 'best[ext=mp4]/best'),
@@ -109,8 +113,9 @@ def download():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        # Provide a friendly download filename
-        response = send_file(outtmpl, as_attachment=True, download_name='facebookvideodownloader.mp4')
+        # Provide a professional download filename with timestamp
+        download_name = f"Facebook_Video_{timestamp}.mp4"
+        response = send_file(outtmpl, as_attachment=True, download_name=download_name)
         
         # Files will be kept for 10 days (automatic cleanup handles deletion)
         # No immediate deletion - files remain available
