@@ -247,8 +247,20 @@
 				console.log('Loading real stats...');
 				const response = await fetch('/api/stats');
 				console.log('API response status:', response.status);
+				
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`);
+				}
+				
 				const data = await response.json();
 				console.log('Stats data received:', data);
+				
+				if (data.status === 'error') {
+					console.warn('API returned error status:', data.message);
+					// Use fallback values
+					updateStatsDisplay(0, 0);
+					return;
+				}
 				
 				const statNumbers = document.querySelectorAll('.stat-number');
 				console.log('Found stat elements:', statNumbers.length);
@@ -273,11 +285,27 @@
 				console.log('Stats updated successfully');
 			} catch (error) {
 				console.error('Error loading stats:', error);
-				// Fallback to default values if API fails
-				const statNumbers = document.querySelectorAll('.stat-number');
-				if (statNumbers[0]) animateCounter(statNumbers[0], 0);
-				if (statNumbers[1]) animateCounter(statNumbers[1], 0);
-				if (statNumbers[2]) statNumbers[2].textContent = '100%';
+				// Use fallback values
+				updateStatsDisplay(0, 0);
+			}
+		}
+
+		function updateStatsDisplay(downloads, users) {
+			const statNumbers = document.querySelectorAll('.stat-number');
+			
+			// Update downloads
+			if (statNumbers[0]) {
+				animateCounter(statNumbers[0], downloads);
+			}
+			
+			// Update users
+			if (statNumbers[1]) {
+				animateCounter(statNumbers[1], users);
+			}
+			
+			// Keep 100% Free Forever static
+			if (statNumbers[2]) {
+				statNumbers[2].textContent = '100%';
 			}
 		}
 

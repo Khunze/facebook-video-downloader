@@ -19,18 +19,32 @@ STATS_FILE = 'stats.json'
 
 def load_stats():
     """Load download statistics"""
-    if os.path.exists(STATS_FILE):
-        with open(STATS_FILE, 'r') as f:
-            return json.load(f)
+    try:
+        if os.path.exists(STATS_FILE):
+            with open(STATS_FILE, 'r') as f:
+                data = json.load(f)
+                # Handle both old and new formats
+                if isinstance(data.get('unique_users'), list):
+                    data['unique_users'] = set(data['unique_users'])
+                return data
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error loading stats: {e}")
+    
+    # Return default if file doesn't exist or is corrupted
     return {'total_downloads': 0, 'unique_users': set()}
 
 def save_stats(stats):
     """Save download statistics"""
-    # Convert set to list for JSON serialization
-    stats_copy = stats.copy()
-    stats_copy['unique_users'] = list(stats_copy['unique_users'])
-    with open(STATS_FILE, 'w') as f:
-        json.dump(stats_copy, f)
+    try:
+        # Convert set to list for JSON serialization
+        stats_copy = stats.copy()
+        stats_copy['unique_users'] = list(stats_copy['unique_users'])
+        with open(STATS_FILE, 'w') as f:
+            json.dump(stats_copy, f)
+        print(f"Stats saved: {stats_copy}")
+    except IOError as e:
+        print(f"Error saving stats: {e}")
+        # Don't crash if we can't save stats
 
 def update_stats(user_ip):
     """Update download statistics"""
@@ -72,16 +86,27 @@ def index():
 @app.route('/api/stats')
 def get_stats():
     """API endpoint to get real-time stats"""
-    stats = load_stats()
-    if isinstance(stats['unique_users'], list):
-        unique_count = len(stats['unique_users'])
-    else:
-        unique_count = len(stats['unique_users'])
-    
-    return jsonify({
-        'total_downloads': stats['total_downloads'],
-        'unique_users': unique_count
-    })
+    try:
+        stats = load_stats()
+        if isinstance(stats['unique_users'], list):
+            unique_count = len(stats['unique_users'])
+        else:
+            unique_count = len(stats['unique_users'])
+        
+        return jsonify({
+            'total_downloads': stats['total_downloads'],
+            'unique_users': unique_count,
+            'status': 'success'
+        })
+    except Exception as e:
+        print(f"Error in get_stats: {e}")
+        # Return safe defaults if everything fails
+        return jsonify({
+            'total_downloads': 0,
+            'unique_users': 0,
+            'status': 'error',
+            'message': 'Stats temporarily unavailable'
+        })
 
 @app.route('/about')
 def about():
