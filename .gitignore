@@ -1,10 +1,8 @@
 downloads/
 *.pyc
 __pycache__/
-*.py[cod]
-*$py.class
-downloads/
-stats.json
+.venv/
+venv/
 *.mp4
 *.txt
 !requirements.txt
